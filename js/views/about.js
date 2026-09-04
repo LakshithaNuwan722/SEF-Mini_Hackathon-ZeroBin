@@ -1,5 +1,8 @@
 /**
  * The in-app explanation of the Sri Lankan problem, and how the app answers it.
+ *
+ * @author IT24100732 (Member 4)
+ *
  * The assignment asks for this to live inside the product rather than only in a
  * README, so it is a real page with real navigation, not a footer note.
  */
