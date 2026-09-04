@@ -1,6 +1,8 @@
 /**
  * Feature 4 — Impact dashboard.
  *
+ * @author IT24100732 (Member 4)
+ *
  * Both charts are single-series, so they use one hue (--chart, contrast-checked
  * against the surface in both themes), carry no legend — the title above each
  * one already names what is plotted — and direct-label only the largest bar.
