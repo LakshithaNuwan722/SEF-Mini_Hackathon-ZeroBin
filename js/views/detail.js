@@ -297,3 +297,4 @@ function wireActions(box, l, navigate) {
     }
   })
 }
+
