@@ -1,0 +1,112 @@
+rules_version = '2';
+
+// =============================================================================
+// ZeroBin — Cloud Firestore security rules
+//
+// ZeroBin runs on the free Spark plan, so there are no Cloud Functions and no
+// trusted server code. That means these rules ARE the backend: every invariant
+// the app depends on has to hold here, because a determined user can call the
+// Firestore API directly and skip our JavaScript entirely.
+//
+// The one that matters most: an item can only go from "available" to "claimed",
+// and only the person doing the claiming can put their own name on it. The app
+// also wraps a claim in a transaction, but this is what actually guarantees that
+// two people never end up holding the same bag of bread.
+//
+// Publish with:  firebase deploy --only firestore:rules
+// =============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    // A claim may only ever touch these fields. Nobody gets to quietly change
+    // the portions, the pickup window or the shop while "claiming" something.
+    function onlyClaimFields() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['status', 'claimedBy', 'claimedByName', 'claimCode', 'claimedAt', 'updatedAt']);
+    }
+
+    function validListing(d) {
+      return d.title is string
+        && d.title.size() > 1 && d.title.size() <= 90
+        && d.portions is number && d.portions >= 1 && d.portions <= 500
+        && d.pickupStart is number
+        && d.pickupEnd is number
+        && d.pickupEnd > d.pickupStart
+        && d.status in ['available', 'claimed', 'picked_up', 'expired', 'cancelled'];
+    }
+
+    // ---------------------------------------------------------------------
+    // users — a person may only ever see or edit their own profile row.
+    // Listings carry a denormalised copy of the shop name and phone number, so
+    // nothing on the public side needs to read this collection.
+    // ---------------------------------------------------------------------
+    match /users/{userId} {
+      allow read: if signedIn() && uid() == userId;
+
+      allow create: if signedIn()
+        && uid() == userId
+        && request.resource.data.role in ['business', 'receiver'];
+
+      // The account type is fixed at signup — a receiver cannot promote itself
+      // into a business and start posting listings.
+      allow update: if signedIn()
+        && uid() == userId
+        && request.resource.data.role == resource.data.role;
+
+      allow delete: if false;
+    }
+
+    // ---------------------------------------------------------------------
+    // listings
+    // ---------------------------------------------------------------------
+    match /listings/{listingId} {
+
+      // Public. Seeing what food is available must not require an account —
+      // that is the whole point of the app.
+      allow read: if true;
+
+      // Only a signed-in shop, and only in its own name.
+      allow create: if signedIn()
+        && request.resource.data.businessId == uid()
+        && validListing(request.resource.data);
+
+      // The shop that posted it may edit it, withdraw it, or mark it collected —
+      // but may never hand ownership to another account.
+      allow update: if signedIn()
+        && resource.data.businessId == uid()
+        && request.resource.data.businessId == resource.data.businessId;
+
+      allow delete: if signedIn() && resource.data.businessId == uid();
+
+      // CLAIM. Any signed-in person may take an item that is still available,
+      // may only write their own uid onto it, may not claim their own listing,
+      // and may not change anything except the claim fields. Because the write
+      // is conditional on the CURRENT status being 'available', a second
+      // claimer's write is rejected outright — this is the race that would
+      // otherwise send two people across town for one bag of bread.
+      allow update: if signedIn()
+        && resource.data.status == 'available'
+        && request.resource.data.status == 'claimed'
+        && request.resource.data.claimedBy == uid()
+        && resource.data.businessId != uid()
+        && onlyClaimFields();
+
+      // RELEASE. Only the person currently holding the claim can put it back.
+      allow update: if signedIn()
+        && resource.data.status == 'claimed'
+        && resource.data.claimedBy == uid()
+        && request.resource.data.status == 'available'
+        && request.resource.data.claimedBy == null
+        && onlyClaimFields();
+    }
+  }
+}

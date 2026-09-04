@@ -1,0 +1,48 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "**/.*",
+      ".git/**",
+      ".claude/**",
+      "**/node_modules/**",
+      "firebase.json",
+      "firestore.rules",
+      "firestore.indexes.json",
+      "vercel.json",
+      "devserver.py",
+      "README.md"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**/*.@(png|jpg|jpeg|svg|webp|woff2)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=86400"
+          }
+        ]
+      },
+      {
+        "//": "js and css filenames are not content-hashed, so they must revalidate on every load \u2014 otherwise a deploy is invisible to anyone who visited in the last hour.",
+        "source": "**/*.@(js|css|html)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      }
+    ]
+  }
+}
