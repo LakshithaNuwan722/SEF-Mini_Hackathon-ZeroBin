@@ -5,8 +5,8 @@
 SE3090 Software Engineering Frameworks · Assignment 2 — Mini Hackathon · SLIIT
 
 - **Live application:** <https://assignment-43655.web.app>
-- **Demonstration video:** _(paste your video link here)_
-- **Repository:** _(paste your GitHub URL here)_
+- **Demonstration video:** <https://drive.google.com/file/d/1RzvfUwv-af-2_HNJZK30cLg34Bo5UrCr/view?usp=sharing>
+- **Repository:** <https://github.com/LakshithaNuwan722/SEF-Mini_Hackathon-ZeroBin>
 
 ---
 
